@@ -1,8 +1,9 @@
 package formatter
 
 import (
+	"code-formatter/formatter/languages"
+	"code-formatter/formatter/metadata"
 	"code-formatter/utility"
-	"strings"
 )
 
 type Formatter struct {
@@ -11,7 +12,7 @@ type Formatter struct {
 }
 
 func (formatter *Formatter) Format(path string) ([]string, error) {
-	fileHandler, err := utility.NewFileHandler("./test/samples/index.js")
+	fileHandler, err := utility.NewFileHandler(path)
 	if err != nil {
 		panic(err)
 	}
@@ -22,31 +23,13 @@ func (formatter *Formatter) Format(path string) ([]string, error) {
 		panic(err)
 	}
 	formatter.unformattedLines = lines
+	var lineCollection = metadata.NewLineCollection(formatter.unformattedLines)
 
-	for i, line := range formatter.unformattedLines {
-		if line == "" && (i > 0 && formatter.unformattedLines[i-1] == "") {
-			continue
-		}
-
-		var finalLine = line
-		finalLine = strings.TrimRight(line, " \t")
-
-		if formatter.shouldAddSemiColon(finalLine) {
-			finalLine += ";"
-		}
-
-		formatter.formattedLines = append(formatter.formattedLines, finalLine)
+	var languageFormatter = languages.NewJavaScriptFormatter()
+	for _, line := range lineCollection.Lines {
+		languageFormatter.Format(&line)
+		formatter.formattedLines = append(formatter.formattedLines, line.Content)
 	}
 
 	return formatter.formattedLines, nil
-}
-
-func (formatter *Formatter) shouldAddSemiColon(line string) bool {
-	var lineLength = len(line)
-	if lineLength == 0 {
-		return false
-	}
-
-	var lastChar = string(line[len(line)-1])
-	return !strings.ContainsAny(lastChar, "};{")
 }
